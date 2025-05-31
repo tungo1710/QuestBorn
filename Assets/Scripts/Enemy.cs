@@ -119,7 +119,7 @@ public class Enemy : MonoBehaviour
         rb.linearVelocity = Vector2.zero;
 
         audioManager.PlayEnemyHurtSound();
-        anim.SetTrigger("isHurt");
+        anim.SetTrigger("isHurt"); 
 
         Invoke(nameof(EndHurt), 0.5f);
     }
@@ -155,4 +155,5 @@ public class Enemy : MonoBehaviour
         Debug.Log($"Enemy Damage: {scaled} (Level: {GameManager.levelCount})");
         return scaled;
     }
+
 }

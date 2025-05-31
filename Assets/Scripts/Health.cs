@@ -12,6 +12,8 @@ public class Health : MonoBehaviour
 
     private int currentHealth;
     private Animator animator;
+    private SpriteRenderer spriteRenderer;
+    private Color originalColor;
 
     public int CurrentHealth => currentHealth;
     public int MaxHealth => maxHealth;
@@ -24,11 +26,16 @@ public class Health : MonoBehaviour
         {
             maxHealth = PlayerData.maxHealth;
             currentHealth = PlayerData.health;
+            spriteRenderer = GetComponent<SpriteRenderer>();
+            originalColor = spriteRenderer.color;
         }
         else
         {
             maxHealth += GameManager.levelCount * 10;
             currentHealth = maxHealth;
+            spriteRenderer = GetComponent<SpriteRenderer>();
+            originalColor = spriteRenderer.color;
+
         }
 
         UpdateHealthUI();
@@ -43,10 +50,19 @@ public class Health : MonoBehaviour
 
         animator?.SetTrigger("isHurt");
 
+        spriteRenderer.color = Color.red; 
+
+        Invoke(nameof(RestoreColor), 0.2f);
+
         UpdateHealthUI();
 
         if (currentHealth <= 0)
             Die();
+    }
+
+    private void RestoreColor()
+    {
+        spriteRenderer.color = originalColor;  
     }
 
     public void Heal(int amount)
