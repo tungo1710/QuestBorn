@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Collections;
 
 public class Enemy : MonoBehaviour
 {
@@ -6,6 +7,7 @@ public class Enemy : MonoBehaviour
     public float moveSpeed = 2f;
     public float patrolDistance = 3f;
     public int baseDamage = 10;
+    public float attackCooldown = 1.2f;
 
     [Header("Components")]
     [SerializeField] private GameObject attackHitbox;
@@ -20,8 +22,9 @@ public class Enemy : MonoBehaviour
     private bool isAttacking = false;
     private bool isHurt = false;
 
-    private void Start()
+    void Start()
     {
+
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
         audioManager = FindAnyObjectByType<AudioManager>();
@@ -33,7 +36,7 @@ public class Enemy : MonoBehaviour
             attackHitbox.SetActive(false);
     }
 
-    private void Update()
+    void Update()
     {
         if (isHurt) return;
 
@@ -47,7 +50,7 @@ public class Enemy : MonoBehaviour
         Patrol();
     }
 
-    private void Patrol()
+    void Patrol()
     {
         anim.SetBool("isWalk", true);
         anim.SetBool("isAtk", false);
@@ -55,8 +58,10 @@ public class Enemy : MonoBehaviour
         Vector3 direction = (targetPoint - transform.position).normalized;
         rb.linearVelocity = new Vector2(direction.x * moveSpeed, 0);
 
-        // Flip hướng
-        transform.localScale = new Vector3(direction.x < 0 ? -1 : 1, 1, 1);
+        if (direction.x < 0)
+            transform.localScale = new Vector3(-1, 1, 1);
+        else
+            transform.localScale = new Vector3(1, 1, 1);
 
         if (Vector2.Distance(transform.position, targetPoint) < 0.2f)
         {
@@ -66,31 +71,38 @@ public class Enemy : MonoBehaviour
         }
     }
 
-    private void FacePlayer()
+    void FacePlayer()
     {
         if (playerTransform == null) return;
 
         float dir = playerTransform.position.x - transform.position.x;
-        transform.localScale = new Vector3(dir < 0 ? -1 : 1, 1, 1);
+
+        if (dir < 0)
+            transform.localScale = new Vector3(-1, 1, 1);
+        else
+            transform.localScale = new Vector3(1, 1, 1);
     }
 
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        if (!other.CompareTag("Player")) return;
-
-        isAttacking = true;
-        rb.linearVelocity = Vector2.zero;
-
-        anim.SetBool("isWalk", false);
-        anim.SetBool("isAtk", true);
-
-        playerTransform = other.transform;
-    }
-
-    private void OnTriggerExit2D(Collider2D other)
+    void OnTriggerEnter2D(Collider2D other)
     {
         if (other.CompareTag("Player"))
+        {
+            isAttacking = true;
+            rb.linearVelocity = Vector2.zero;
+
+            anim.SetBool("isWalk", false);
+            anim.SetBool("isAtk", true);
+
+            playerTransform = other.transform;
+        }
+    }
+
+    void OnTriggerExit2D(Collider2D other)
+    {
+        if (other.CompareTag("Player"))
+        {
             playerTransform = null;
+        }
     }
 
     public void EndAttack()
@@ -106,7 +118,6 @@ public class Enemy : MonoBehaviour
             anim.SetBool("isAtk", true);
             anim.SetBool("isWalk", false);
         }
-
         DisableAttackHitbox();
     }
 
@@ -116,11 +127,9 @@ public class Enemy : MonoBehaviour
 
         isHurt = true;
         isAttacking = false;
-        rb.linearVelocity = Vector2.zero;
-
         audioManager.PlayEnemyHurtSound();
-        anim.SetTrigger("isHurt"); 
-
+        rb.linearVelocity = Vector2.zero;
+        anim.SetTrigger("isHurt");
         Invoke(nameof(EndHurt), 0.5f);
     }
 
@@ -128,19 +137,24 @@ public class Enemy : MonoBehaviour
     {
         isHurt = false;
 
-        bool shouldAttack = playerTransform != null;
-
-        isAttacking = shouldAttack;
-        anim.SetBool("isAtk", shouldAttack);
-        anim.SetBool("isWalk", !shouldAttack);
+        if (playerTransform != null)
+        {
+            isAttacking = true;
+            anim.SetBool("isAtk", true);
+            anim.SetBool("isWalk", false);
+        }
+        else
+        {
+            anim.SetBool("isAtk", false);
+            anim.SetBool("isWalk", true);
+        }
     }
 
     public void EnableAttackHitbox()
     {
-        if (attackHitbox == null) return;
-
+        if (attackHitbox != null)
+            audioManager.PlayEnemyAttackSound();
         attackHitbox.SetActive(true);
-        audioManager.PlayEnemyAttackSound();
     }
 
     public void DisableAttackHitbox()
@@ -152,8 +166,7 @@ public class Enemy : MonoBehaviour
     public int GetDamage()
     {
         int scaled = baseDamage + GameManager.levelCount * 10;
-        Debug.Log($"Enemy Damage: {scaled} (Level: {GameManager.levelCount})");
+        Debug.Log("Enemy Damage: " + scaled + " (Level: " + GameManager.levelCount + ")");
         return scaled;
     }
-
 }
